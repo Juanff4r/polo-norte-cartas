@@ -1,0 +1,948 @@
+{
+  "info": {
+    "name": "Polo Norte · Cartas a Santa (Escenario A)",
+    "description": "Ejecutar en orden con el Runner. Requiere la API en :8000 y el mock SOAP en :8081 (nombres: Grinch=Fault, Travies*=TRAVIESO). Si usas el mock del docente, ajusta los nombres de los casos 12-15.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "tokenJefe",
+      "value": "token-elfo-jefe-demo"
+    },
+    {
+      "key": "tokenElfo",
+      "value": "token-elfo-demo"
+    },
+    {
+      "key": "cartaBuenaId",
+      "value": ""
+    },
+    {
+      "key": "cartaTraviesaId",
+      "value": ""
+    },
+    {
+      "key": "cartaGrinchId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Crear carta (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"Valentina Pérez\",\n  \"edad\": 9,\n  \"ciudad\": \"Guayaquil\",\n  \"regalos\": [\n    \"Bicicleta\",\n    \"Libro de cuentos\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.test('estado = RECIBIDA', () => pm.expect(pm.response.json().estado).to.eql('RECIBIDA'));",
+              "pm.test('comportamiento = PENDIENTE_VERIFICACION', () => pm.expect(pm.response.json().comportamiento).to.eql('PENDIENTE_VERIFICACION'));",
+              "pm.collectionVariables.set('cartaBuenaId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Listar con filtros (200) — público, sin edad",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas?estado=RECIBIDA&ciudad=Guayaquil",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ],
+          "query": [
+            {
+              "key": "estado",
+              "value": "RECIBIDA"
+            },
+            {
+              "key": "ciudad",
+              "value": "Guayaquil"
+            }
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Es lista y no expone edad', () => { const l = pm.response.json(); pm.expect(l).to.be.an('array'); l.forEach(c => pm.expect(c).to.not.have.property('edad')); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Detalle (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('Detalle trae edad', () => pm.expect(pm.response.json()).to.have.property('edad'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Entrada inválida (400)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"A\",\n  \"edad\": 30,\n  \"ciudad\": \"\",\n  \"regalos\": [\n    \"Bici\",\n    \"bici\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 400', () => pm.response.to.have.status(400));",
+              "pm.test('codigo = PETICION_INVALIDA', () => pm.expect(pm.response.json().codigo).to.eql('PETICION_INVALIDA'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Carta inexistente (404)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/999999",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "999999"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 404', () => pm.response.to.have.status(404));",
+              "pm.test('codigo = RECURSO_NO_ENCONTRADO', () => pm.expect(pm.response.json().codigo).to.eql('RECURSO_NO_ENCONTRADO'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Sin token (401)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 401', () => pm.response.to.have.status(401));",
+              "pm.test('codigo = TOKEN_AUSENTE', () => pm.expect(pm.response.json().codigo).to.eql('TOKEN_AUSENTE'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Token con rol insuficiente (403)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenElfo}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"APROBADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 403', () => pm.response.to.have.status(403));",
+              "pm.test('codigo = ROL_INSUFICIENTE', () => pm.expect(pm.response.json().codigo).to.eql('ROL_INSUFICIENTE'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Transición inválida RECIBIDA→ENTREGADA (409)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"ENTREGADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 409', () => pm.response.to.have.status(409));",
+              "pm.test('codigo = TRANSICION_INVALIDA', () => pm.expect(pm.response.json().codigo).to.eql('TRANSICION_INVALIDA'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Carta después del 24 de diciembre (422)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-Fecha-Simulada",
+            "value": "2026-12-25"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"Valentina Pérez\",\n  \"edad\": 9,\n  \"ciudad\": \"Guayaquil\",\n  \"regalos\": [\n    \"Bicicleta\",\n    \"Libro de cuentos\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 422', () => pm.response.to.have.status(422));",
+              "pm.test('codigo = FECHA_LIMITE_SUPERADA', () => pm.expect(pm.response.json().codigo).to.eql('FECHA_LIMITE_SUPERADA'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Aprobar carta buena (200 → APROBADA)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"APROBADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('estado = APROBADA', () => pm.expect(pm.response.json().estado).to.eql('APROBADA'));",
+              "pm.test('comportamiento = BUENO', () => pm.expect(pm.response.json().comportamiento).to.eql('BUENO'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Editar carta que ya no está en RECIBIDA (409)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"Valentina Pérez\",\n  \"edad\": 9,\n  \"ciudad\": \"Daule\",\n  \"regalos\": [\n    \"Bicicleta\",\n    \"Libro de cuentos\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 409', () => pm.response.to.have.status(409));",
+              "pm.test('codigo = ESTADO_NO_EDITABLE', () => pm.expect(pm.response.json().codigo).to.eql('ESTADO_NO_EDITABLE'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Crear carta de un travieso (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"Travieso Tomás\",\n  \"edad\": 9,\n  \"ciudad\": \"Guayaquil\",\n  \"regalos\": [\n    \"Bicicleta\",\n    \"Libro de cuentos\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('cartaTraviesaId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Aprobar travieso → RECHAZADA (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaTraviesaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaTraviesaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"APROBADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('estado = RECHAZADA', () => pm.expect(pm.response.json().estado).to.eql('RECHAZADA'));",
+              "pm.test('comportamiento = TRAVIESO', () => pm.expect(pm.response.json().comportamiento).to.eql('TRAVIESO'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Crear carta que provoca Fault (\"Grinch\") (201)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"remitente\": \"Grinch\",\n  \"edad\": 9,\n  \"ciudad\": \"Guayaquil\",\n  \"regalos\": [\n    \"Bicicleta\",\n    \"Libro de cuentos\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 201', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('cartaGrinchId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 SOAP caído al aprobar (503)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaGrinchId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaGrinchId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"APROBADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 503', () => pm.response.to.have.status(503));",
+              "pm.test('codigo = SERVICIO_EXTERNO_NO_DISPONIBLE', () => pm.expect(pm.response.json().codigo).to.eql('SERVICIO_EXTERNO_NO_DISPONIBLE'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 La carta sigue RECIBIDA + PENDIENTE_VERIFICACION (200)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaGrinchId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaGrinchId}}"
+          ]
+        },
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('estado = RECIBIDA', () => pm.expect(pm.response.json().estado).to.eql('RECIBIDA'));",
+              "pm.test('comportamiento = PENDIENTE_VERIFICACION', () => pm.expect(pm.response.json().comportamiento).to.eql('PENDIENTE_VERIFICACION'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 Avanzar a EN_PRODUCCION (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"EN_PRODUCCION\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('estado = EN_PRODUCCION', () => pm.expect(pm.response.json().estado).to.eql('EN_PRODUCCION'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 Avanzar a ENTREGADA (200)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}/estado",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}",
+            "estado"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"estado\":\"ENTREGADA\"}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "pm.test('estado = ENTREGADA', () => pm.expect(pm.response.json().estado).to.eql('ENTREGADA'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 Eliminar carta ENTREGADA (409)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaBuenaId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaBuenaId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 409', () => pm.response.to.have.status(409));",
+              "pm.test('codigo = CARTA_ENTREGADA', () => pm.expect(pm.response.json().codigo).to.eql('CARTA_ENTREGADA'));",
+              "pm.test('Formato único de error', () => { const j = pm.response.json(); ['codigo','mensaje','detalles','timestamp','ruta'].forEach(k => pm.expect(j).to.have.property(k)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 Eliminar carta RECIBIDA (204)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/cartas/{{cartaGrinchId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "cartas",
+            "{{cartaGrinchId}}"
+          ]
+        },
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{tokenJefe}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
