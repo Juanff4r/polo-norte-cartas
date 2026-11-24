@@ -145,4 +145,19 @@ Colección de Postman: `postman/PoloNorte-Cartas.postman_collection.json`. Impor
 
 ## 8. Si el Polo Norte separara el sistema en microservicios
 
-Separaría tres servicios: **Cartas** (ciclo de vida: id, remitente, edad, ciudad, regalos, estado, fecha), **Comportamiento** (dueño de la Lista de Buenos y Traviesos y de su caché de veredictos por nombre y ciudad) y **Producción/Entrega** (estados posteriores a `APROBADA`). Cada uno tendría su propia base de datos y se comunicarían por API o eventos, nunca compartiendo tablas. Si Comportamiento cae el 24 de diciembre a las 23:00, Cartas sigue recibiendo y consultando cartas, porque crear no depende de él. Solo falla la aprobación: responde 503, la carta queda en `RECIBIDA` con `PENDIENTE_VERIFICACION` y no se pierde nada. Un circuit breaker evitaría saturarlo y, al recuperarse, se reprocesarían las pendientes. Hoy ese límite ya existe dentro del monolito: es el adaptador.
+Si separara esto en microservicios, haría tres:
+
+**1. Servicio de Cartas** — Es el "cerebro". Maneja todo el ciclo: crear, listar, editar (solo si está en RECIBIDA), cambiar estados, la regla del 24 de diciembre y que ENTREGADA no se toca. Guarda: id, remitente, edad, ciudad, regalos, estado, comportamiento, fechaRecepcion. Es el dueño de la verdad.
+
+**2. Servicio de Comportamiento** — Encapsula el SOAP viejo. Solo expone un GET simple: le pasas nombre y ciudad, te devuelve BUENO/TRAVIESO/PENDIENTE. Por dentro sabe de XML, timeouts, reintentos, faults... pero afuera nadie se entera. Datos: solo un caché temporal de consultas recientes.
+
+**3. Servicio de Auth** — Tokens y roles (ELFO_JEFE, ELFO). Emite, valida, decide quién puede qué. Datos: tokens + roles.
+
+**¿Y si Comportamiento cae el 24/12 a las 23:00?**
+Cartas sigue recibiendo cartas y consultándolas, porque crear no depende de Comportamiento. Solo falla la aprobación: el adapter devuelve timeout/fault, Cartas marca la carta como PENDIENTE_VERIFICACION en RECIBIDA y responde 503. No se pierde nada, no se aprueba a ciegas. El elf-jefe reintenta el PATCH /estado al día siguiente. El sistema no explota, solo degrada controlado. De hecho, ese límite ya existe hoy dentro del monolito: es el adapter. Al sacarlo a microservicio, el contrato de fallo (503 + estado pendiente) se hace explícito entre servicios, no implícito en una clase.
+
+## 9. Diagrama de arquitectura
+
+![Arquitectura del sistema](docs/arquitectura.svg)
+
+*El diagrama muestra: cliente (Postman) → punto de entrada API → middleware de seguridad + manejador global de errores → capas (rutas → controladores → servicios → repositorio) → adaptador SOAP → servicio externo ListaBuenosTraviesosService. La flecha roja punteada marca el **punto de manejo del fallo** (timeout/Fault → 503 + PENDIENTE_VERIFICACION).*
