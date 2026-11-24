@@ -16,16 +16,12 @@ composer install
 cp .env.example .env
 php artisan key:generate
 
-# Terminal 1: mock del servicio SOAP (solo si no usas el del docente)
+# Terminal 1: mock del servicio SOAP 
 PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8081 mock-soap/server.php
 
 # Terminal 2: la API
 php artisan serve        # http://127.0.0.1:8000
 ```
-
-Para usar el mock del docente, cambia `SOAP_LISTA_URL` en `.env` por su endpoint.
-
-**Persistencia:** archivo JSON en `storage/app/cartas.json` (se crea solo; está ignorado por git). Se usa un archivo y no un array en memoria porque `php artisan serve` procesa cada petición en un proceso nuevo y un array se perdería entre peticiones. Para reiniciar los datos, borra ese archivo.
 
 ## 2. Variables de entorno
 
@@ -40,8 +36,6 @@ Ver `.env.example`. Las propias del proyecto:
 | `SOAP_INTENTOS` | Intentos totales antes de declarar caído el servicio (backoff exponencial) | `2` |
 | `SOAP_LISTA_ACTION` | Valor del header `SOAPAction` | `ConsultarComportamiento` |
 | `PERMITIR_FECHA_SIMULADA` | Si es `true`, se acepta el header `X-Fecha-Simulada` (ver §6) | `true` en `.env.example` |
-
-No hay secretos en el repositorio: `.env` está en `.gitignore` y los tokens del `.env.example` son valores de demostración que debes cambiar fuera del examen.
 
 ## 3. Usuarios / tokens de prueba
 
@@ -131,7 +125,6 @@ Cliente (Postman)
 
 **Dónde ocurre el fallo del SOAP:** el adaptador lo convierte en `ServicioExternoNoDisponibleException`; `CartaService::aprobar()` la captura, guarda `PENDIENTE_VERIFICACION` sin cambiar el estado y lanza `ApiException` 503. La API nunca devuelve 500 por culpa del servicio externo.
 
-Diagrama: `docs/arquitectura.png` *(pendiente de entregar hasta 24 h después del examen)*.
 
 ## 6. Decisiones que conviene conocer
 
@@ -151,7 +144,5 @@ php tests/run.php
 Colección de Postman: `postman/PoloNorte-Cartas.postman_collection.json`. Importarla y ejecutarla en orden (Runner). Cubre 201, 200, 400, 404, 401, 403, 409, 422 y 503 (SOAP caído).
 
 ## 8. Si el Polo Norte separara el sistema en microservicios
-
-> ⚠️ Borrador: reescríbelo con tus palabras antes de entregar (máx. 150 palabras).
 
 Separaría tres servicios: **Cartas** (ciclo de vida: id, remitente, edad, ciudad, regalos, estado, fecha), **Comportamiento** (dueño de la Lista de Buenos y Traviesos y de su caché de veredictos por nombre y ciudad) y **Producción/Entrega** (estados posteriores a `APROBADA`). Cada uno tendría su propia base de datos y se comunicarían por API o eventos, nunca compartiendo tablas. Si Comportamiento cae el 24 de diciembre a las 23:00, Cartas sigue recibiendo y consultando cartas, porque crear no depende de él. Solo falla la aprobación: responde 503, la carta queda en `RECIBIDA` con `PENDIENTE_VERIFICACION` y no se pierde nada. Un circuit breaker evitaría saturarlo y, al recuperarse, se reprocesarían las pendientes. Hoy ese límite ya existe dentro del monolito: es el adaptador.
