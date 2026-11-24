@@ -17,7 +17,7 @@ cp .env.example .env
 php artisan key:generate
 
 # Terminal 1: mock del servicio SOAP 
-PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8081 mock-soap/server.php
+php -S 127.0.0.1:8081 mock-soap/server.php
 
 # Terminal 2: la API
 php artisan serve        # http://127.0.0.1:8000
@@ -137,7 +137,7 @@ Cliente (Postman)
 
 ```bash
 # Lógica de dominio sin Laravel (reglas, validación, adaptador contra el mock)
-PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8081 mock-soap/server.php &
+php -S 127.0.0.1:8081 mock-soap/server.php
 php tests/run.php
 ```
 
